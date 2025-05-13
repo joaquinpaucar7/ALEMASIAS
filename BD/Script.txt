@@ -1,0 +1,134 @@
+Codigo SQL
+-- Crear tablas base
+
+CREATE TABLE rol (
+    rol_id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE usuario (
+    usuario_id SERIAL PRIMARY KEY,
+    nombre VARCHAR NOT NULL,
+    apellido VARCHAR NOT NULL,
+    email VARCHAR UNIQUE NOT NULL,
+    password_hash VARCHAR NOT NULL,
+    rol_id INT REFERENCES rol(rol_id),
+    fecha_creacion TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE proveedor (
+    proveedor_id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    telefono VARCHAR(20)
+);
+
+CREATE TABLE categoria_producto (
+    categoria_id SERIAL PRIMARY KEY,
+    tipo_prenda VARCHAR(50) NOT NULL,
+    descripcion_prenda VARCHAR(50) NOT NULL,
+    tipo_tela VARCHAR(50) NOT NULL,
+    color VARCHAR(50) NOT NULL,
+    marca VARCHAR(50) NOT NULL,
+    talla VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE producto (
+    producto_id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    precio_venta DECIMAL(10,2) NOT NULL,
+    stock_actual INT DEFAULT 0,
+    categoria_id INT REFERENCES categoria_producto(categoria_id),
+    clasificacion_abc CHAR(1) CHECK (clasificacion_abc IN ('A', 'B', 'C')),
+    fecha_registro TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE clasificacion_abc (
+    clasificacion_id SERIAL PRIMARY KEY,
+    producto_id INT REFERENCES producto(producto_id),
+    categoria CHAR(1) CHECK (categoria IN ('A', 'B', 'C')) NOT NULL,
+    fecha_actualizacion TIMESTAMP DEFAULT NOW(),
+    porcentaje_contribucion DECIMAL(5,2)
+);
+
+CREATE TABLE almacen (
+    almacen_id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    direccion VARCHAR(100),
+    capacidad INT
+);
+
+CREATE TABLE ubicacion (
+    ubicacion_id SERIAL PRIMARY KEY,
+    almacen_id INT REFERENCES almacen(almacen_id),
+    codigo VARCHAR(20) NOT NULL,
+    descripcion TEXT
+);
+
+CREATE TABLE stock_ubicacion (
+    producto_id INT REFERENCES producto(producto_id),
+    ubicacion_id INT REFERENCES ubicacion(ubicacion_id),
+    cantidad INT DEFAULT 0,
+    PRIMARY KEY (producto_id, ubicacion_id)
+);
+
+CREATE TABLE tipo_movimiento (
+    tipo_movimiento_id SERIAL PRIMARY KEY,
+    nombre VARCHAR(20) NOT NULL,
+    descripcion TEXT
+);
+
+CREATE TABLE movimiento_inventario (
+    movimiento_id SERIAL PRIMARY KEY,
+    tipo_movimiento_id INT REFERENCES tipo_movimiento(tipo_movimiento_id),
+    usuario_id INT REFERENCES usuario(usuario_id),
+    almacen_origen_id INT REFERENCES almacen(almacen_id),
+    almacen_destino_id INT REFERENCES almacen(almacen_id),
+    proveedor_id INT REFERENCES proveedor(proveedor_id),
+    fecha TIMESTAMP DEFAULT NOW(),
+    comentario TEXT
+);
+
+CREATE TABLE detalle_movimiento (
+    detalle_movimiento_id SERIAL PRIMARY KEY,
+    movimiento_id INT REFERENCES movimiento_inventario(movimiento_id),
+    producto_id INT REFERENCES producto(producto_id),
+    ubicacion_id INT REFERENCES ubicacion(ubicacion_id),
+    cantidad INT NOT NULL,
+    lote VARCHAR(50)
+);
+
+CREATE TABLE venta (
+    venta_id SERIAL PRIMARY KEY,
+    usuario_id INT REFERENCES usuario(usuario_id),
+    fecha TIMESTAMP DEFAULT NOW(),
+    total DECIMAL(10,2) NOT NULL,
+    estado VARCHAR(20) DEFAULT 'completada'
+);
+
+CREATE TABLE detalle_venta (
+    detalle_venta_id SERIAL PRIMARY KEY,
+    venta_id INT REFERENCES venta(venta_id),
+    producto_id INT REFERENCES producto(producto_id),
+    cantidad INT NOT NULL,
+    precio_unitario DECIMAL(10,2) NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE boleta (
+    boleta_id SERIAL PRIMARY KEY,
+    venta_id INT REFERENCES venta(venta_id) UNIQUE,
+    numero_boleta VARCHAR(20) UNIQUE NOT NULL,
+    fecha_emision TIMESTAMP DEFAULT NOW(),
+    datos_cliente JSONB
+);
+
+CREATE TABLE reporte (
+    reporte_id SERIAL PRIMARY KEY,
+    usuario_id INT REFERENCES usuario(usuario_id),
+    tipo VARCHAR(50) NOT NULL,
+    fecha_generacion TIMESTAMP DEFAULT NOW(),
+    parametros JSONB,
+    ruta_archivo VARCHAR(255)
+);
+
